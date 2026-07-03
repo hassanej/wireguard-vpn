@@ -4,6 +4,8 @@ set -Eeuo pipefail
 
 trap 'echo; echo "Installation failed."; exit 1' ERR
 
+export DEBIAN_FRONTEND=noninteractive
+
 echo "========================================="
 echo "      WireGuard VPN Installer"
 echo "========================================="
@@ -20,7 +22,6 @@ if ! curl -fsSL https://api.ipify.org >/dev/null; then
     exit 1
 fi
 
-# Check for existing installation
 if [ -f /opt/wg-easy/compose.yaml ]; then
     echo
     echo "An existing WireGuard installation was found."
@@ -36,11 +37,10 @@ while true; do
     read -rsp "Confirm password: " WG_CONFIRM
     echo
 
-    if [[ "$WG_PASSWORD" == "$WG_CONFIRM" ]]; then
-        break
-    fi
+    [[ "$WG_PASSWORD" == "$WG_CONFIRM" ]] && break
 
-    echo "Passwords do not match. Please try again."
+    echo
+    echo "Passwords do not match."
     echo
 done
 
@@ -58,22 +58,23 @@ if ! command -v docker >/dev/null 2>&1; then
     curl -fsSL https://get.docker.com | sh
 fi
 
+docker --version >/dev/null
+
 echo "[4/10] Starting Docker..."
 
 systemctl enable docker
 systemctl start docker
 
-echo "Waiting for Docker..."
-
 until docker info >/dev/null 2>&1; do
+    echo "Waiting for Docker..."
     sleep 2
 done
 
 echo "Checking Docker Compose..."
 
 if ! docker compose version >/dev/null 2>&1; then
-    echo "Docker Compose plugin not found."
-    exit 1
+    apt update
+    apt install -y docker-compose-plugin
 fi
 
 echo "[5/10] Enabling IPv4 forwarding..."
@@ -86,7 +87,13 @@ sysctl --system >/dev/null
 
 echo "[6/10] Detecting public IP..."
 
-PUBLIC_IP=$(curl -4 -fsSL https://api.ipify.org || curl -4 -fsSL https://ifconfig.me)
+PUBLIC_IP=$(
+    curl -4 -fsSL https://api.ipify.org ||
+    curl -4 -fsSL https://ifconfig.me ||
+    curl -4 -fsSL https://icanhazip.com
+)
+
+PUBLIC_IP=$(echo "$PUBLIC_IP" | tr -d '\n')
 
 echo "Public IP: ${PUBLIC_IP}"
 
@@ -164,24 +171,26 @@ if [[ "$STATUS" != "healthy" ]]; then
     exit 1
 fi
 
+docker image prune -f >/dev/null 2>&1 || true
+
 echo
 echo "========================================="
-echo "      Installation Complete"
+echo "          SUCCESS"
 echo "========================================="
 echo
 echo "Dashboard:"
 echo "http://${PUBLIC_IP}:51821"
 echo
-echo "Login Password:"
-echo "(the password you entered)"
-echo
 echo "WireGuard Port:"
 echo "51820/UDP"
 echo
+echo "SSH:"
+echo "ssh root@${PUBLIC_IP}"
+echo
 echo "Next Steps:"
 echo "1. Open the dashboard."
-echo "2. Log in."
+echo "2. Log in using the password you entered."
 echo "3. Create a client."
-echo "4. Scan the QR code using the WireGuard app."
+echo "4. Scan the QR code with the WireGuard app."
 echo
 echo "========================================="
