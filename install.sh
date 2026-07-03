@@ -99,8 +99,19 @@ echo "Public IP: ${PUBLIC_IP}"
 
 echo "[7/10] Generating password hash..."
 
-PASSWORD_HASH=$(docker run --rm ghcr.io/wg-easy/wg-easy:latest wgpw "$WG_PASSWORD")
-PASSWORD_HASH="${PASSWORD_HASH//$/\$\$}"
+HASH_OUTPUT=$(docker run --rm ghcr.io/wg-easy/wg-easy:latest wgpw "$WG_PASSWORD")
+
+# Extract only the bcrypt hash from:
+# PASSWORD_HASH='$2a$12$...'
+PASSWORD_HASH=$(printf '%s\n' "$HASH_OUTPUT" | sed -n "s/^PASSWORD_HASH='\(.*\)'$/\1/p")
+
+# Escape $ for Docker Compose
+PASSWORD_HASH=$(printf '%s\n' "$PASSWORD_HASH" | sed 's/\$/$$/g')
+
+if [[ ! "$PASSWORD_HASH" =~ ^\$\$2[aby]\$\$ ]]; then
+    echo "Failed to generate a valid password hash."
+    exit 1
+fi
 
 mkdir -p /opt/wg-easy
 
