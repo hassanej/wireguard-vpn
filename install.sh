@@ -191,17 +191,3 @@ echo "========================================="
 echo
 echo "Dashboard:"
 echo "http://${PUBLIC_IP}:51821"
-echo
-echo "WireGuard Port:"
-echo "51820/UDP"
-echo
-echo "SSH:"
-echo "ssh root@${PUBLIC_IP}"
-echo
-echo "Next Steps:"
-echo "1. Open the dashboard."
-echo "2. Log in using the password you entered."
-echo "3. Create a client."
-echo "4. Scan the QR code with the WireGuard app."
-echo
-echo "========================================="
