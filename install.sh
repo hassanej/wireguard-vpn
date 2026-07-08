@@ -309,7 +309,3 @@ echo
 echo "http://${PUBLIC_IP}:8080/Client%201.conf"
 echo
 echo
-echo "The download link works once."
-echo "After the download completes:"
-echo "  • Client 1.conf is deleted"
-echo "  • The download server stops automatically"
